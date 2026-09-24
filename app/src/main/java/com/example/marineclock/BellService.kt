@@ -116,6 +116,7 @@ class BellService : Service() {
         focusRequest = null
         wakeLock?.let { if (it.isHeld) it.release() }
         wakeLock = null
+        ringing = false
     }
 
     // shortService timeout callback; the two-arg form (API 35) is overridden too so
