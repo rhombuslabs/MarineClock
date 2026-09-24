@@ -35,7 +35,7 @@ notification toggle turns it on and off.
 
 ## Platform
 
-- Kotlin, Views/AppCompat template (no Compose), minSdk 35, targetSdk/compileSdk 37.
+- Kotlin, framework APIs only (no AppCompat, no Compose), minSdk 35, targetSdk/compileSdk 37.
 - Package / applicationId renamed from `com.example.myapplication` to
   `com.example.marineclock`. App label: "Ship's Bell".
 
@@ -73,7 +73,7 @@ RescheduleReceiver (boot / update / time / timezone) ──► BellScheduler.sch
 | `BellService` | Foreground service, type `shortService`. Posts the ongoing notification, requests transient audio focus, plays the strikes, releases everything, and calls `stopSelf()`. Implements `onTimeout` to stop cleanly. | `SoundPool`, `AudioManager`, `BellMath` |
 | `RescheduleReceiver` | On `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`: calls `scheduleNext()`. | `BellScheduler` |
 | `LaunchActivity` | Launcher entry with a no-display/translucent theme and no layout. It creates the notification channel, requests `POST_NOTIFICATIONS` if not granted, calls `scheduleNext()` whatever the result, then calls `finish()`. | `BellScheduler` |
-| `Channels` | Creates the "Ship's bell" notification channel (idempotent, called from the activity, the receivers, and the service). | `NotificationManager` |
+| `Channels` | Creates the "Ship's bell" notification channel (idempotent, called from the activity, the alarm path (via gates), and the service). | `NotificationManager` |
 
 ### Bell count
 
@@ -109,7 +109,8 @@ bells     = ((halfHours - 1) mod 8) + 1      // floor-mod; 00:00 → 8
   `CONTENT_TYPE_SONIFICATION`, max streams 8, so overlapping strikes all sound.
 - The service loads the sample and waits for `setOnLoadCompleteListener`. It then
   posts each strike with a `Handler` relative to one start time (no accumulated
-  drift), and stops after the last offset plus 2.0 s.
+  drift), and stops after the last offset plus 2.0 s. It releases `SoundPool` 300 ms
+  after the chime's nominal end, so output latency doesn't clip the last strike's tail.
 - The service holds a `PARTIAL_WAKE_LOCK` (10 s timeout) from start to stop, so
   the strike `Handler` keeps accurate time with the screen off.
 - Audio focus: `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`. The service plays even if
@@ -139,6 +140,9 @@ Notification volume at zero is not a gate. The bell simply plays silently.
 - Ongoing notification while ringing: title "Ship's bell", text e.g. "3 bells".
   It is removed when the service stops (about 2–6 s).
 - Small icon: a simple bell vector drawable.
+- Android defers a `shortService` foreground notification by about 10 s before
+  showing it. Since a chime lasts only 2–6 s, the "N bells" notification usually
+  never appears on screen. This is expected, not a bug.
 
 ### Manifest
 

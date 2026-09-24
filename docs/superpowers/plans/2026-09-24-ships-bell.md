@@ -1241,8 +1241,9 @@ function gated { & $adb shell am broadcast -a com.example.marineclock.TEST_RING 
 - [ ] **Step 4: Volume.** Set notification volume to max, then low, running `--ei bells 2` tests (non-gated) each time. Expected: loudness follows the slider; at zero, nothing is heard.
 - [ ] **Step 5: Real half hour.** Leave the phone locked with the screen off across a real :00 or :30. Expected: the correct count rings within a second or two of the boundary, and `Next bell scheduled for …` shows the following boundary.
 - [ ] **Step 6: Reboot.** `& $adb reboot`, wait for boot, then run `& $adb shell dumpsys alarm | Select-String -Pattern "marineclock" -Context 0,3`. Expected: an alarm is armed for the next boundary without relaunching the app.
-- [ ] **Step 7: Time-zone change.** Settings → System → Date & time → set a zone with a :30 offset (e.g. India). Expected: `Next bell scheduled for …` is logged with the new zone's next local :00 or :30. Restore the automatic time zone afterwards.
-- [ ] **Step 8: Record results.** Append a short "Verification" section to the spec listing each step as pass or fail with the device model and Android version, then commit:
+- [ ] **Step 7: Time-zone change.** Settings → System → Date & time → set a zone with a :45 offset (e.g. Nepal, Asia/Kathmandu, +5:45) — India's :30 offset leaves half-hour instants unchanged, so it wouldn't show a real shift. Expected: `Next bell scheduled for …` is logged with the new zone's next local :00 or :30, and `dumpsys alarm` shows the trigger moved. Restore the automatic time zone afterwards.
+- [ ] **Step 8: Standby buckets.** `& $adb shell am set-standby-bucket com.example.marineclock rare`, confirm the next half hour still rings; repeat with `restricted`; restore with `active`. Note: set ringer mode to Normal before Steps 1 and 4 (silent/vibrate mutes the notification stream), and the "N bells" notification typically won't appear (the short-service FGS notification is deferred) — that is not a failure.
+- [ ] **Step 9: Record results.** Append a short "Verification" section to the spec listing each step as pass or fail with the device model and Android version, then commit:
 
 ```powershell
 git add docs/superpowers/specs/2026-09-24-ships-bell-design.md
