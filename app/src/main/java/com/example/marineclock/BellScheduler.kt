@@ -25,8 +25,13 @@ object BellScheduler {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        context.getSystemService(AlarmManager::class.java)
-            .setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pending)
+        try {
+            context.getSystemService(AlarmManager::class.java)
+                .setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pending)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Cannot schedule exact alarm", e)
+            return
+        }
         Log.i(TAG, "Next bell scheduled for $next")
     }
 }

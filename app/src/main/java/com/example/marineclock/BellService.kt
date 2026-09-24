@@ -1,5 +1,6 @@
 package com.example.marineclock
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.Service
 import android.content.Context
@@ -31,11 +32,17 @@ class BellService : Service() {
         val bells = intent?.getIntExtra(EXTRA_BELLS, 0) ?: 0
         Channels.ensure(this)
         // Every startForegroundService() call must be answered with startForeground().
-        startForeground(
-            NOTIFICATION_ID,
-            buildNotification(bells.coerceIn(1, 8)),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE,
-        )
+        try {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(bells.coerceIn(1, 8)),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE,
+            )
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            Log.w(TAG, "Not allowed to enter foreground", e)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         when {
             ringing -> Log.i(TAG, "Already ringing; ignoring request for $bells bells")
             bells !in 1..8 -> {
@@ -77,7 +84,7 @@ class BellService : Service() {
             for (offset in BellMath.strikeOffsetsMs(bells)) {
                 handler.postAtTime({ loaded.play(sampleId, 1f, 1f, 1, 0, 1f) }, start + offset)
             }
-            handler.postAtTime({ finish() }, start + BellMath.chimeDurationMs(bells))
+            handler.postAtTime({ finish() }, start + BellMath.chimeDurationMs(bells) + RELEASE_MARGIN_MS)
             Log.i(TAG, "Ringing $bells bells")
         }
         pool.load(this, R.raw.ships_bell, 1)
@@ -140,6 +147,7 @@ class BellService : Service() {
         private const val TAG = "ShipsBell"
         private const val NOTIFICATION_ID = 1
         private const val SAFETY_TIMEOUT_MS = 10_000L
+        private const val RELEASE_MARGIN_MS = 300L
         const val EXTRA_BELLS = "com.example.marineclock.BELLS"
 
         fun start(context: Context, bells: Int) {
