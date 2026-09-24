@@ -147,11 +147,14 @@ Notification volume at zero is not a gate. The bell simply plays silently.
 - `BellService`: `android:foregroundServiceType="shortService"`, not exported.
 - `BellAlarmReceiver`: not exported (explicit `PendingIntent` only).
 - `RescheduleReceiver`: exported, with intent filters for the four system actions.
-- `LaunchActivity`: `MAIN`/`LAUNCHER`, translucent no-display theme,
-  `excludeFromRecents`, `noHistory`.
+- `LaunchActivity`: `MAIN`/`LAUNCHER`, translucent theme, `excludeFromRecents`.
+  No `noHistory`: the activity must survive while the permission dialog is shown.
 - Debug-only (`src/debug/AndroidManifest.xml`): an exported `TestRingReceiver` for
   action `com.example.marineclock.TEST_RING` with int extra `bells` (default 8).
-  It starts `BellService` directly, bypassing the gates.
+  Background receivers can't start foreground services, so it sets a one-shot
+  exact alarm 1 s out (separate request code) that rings `bells` and bypasses the
+  gates. With `--ez gated true` it instead goes through the real gates and rings
+  the count for the current time.
 
 ## Error handling
 
@@ -178,7 +181,7 @@ Notification volume at zero is not a gate. The bell simply plays silently.
 - `strikeOffsetsMs`: correct lists for 1–8 bells. The 8-bell last offset is 4000.
 
 **Manual (device):**
-- `adb shell am broadcast -a com.example.marineclock.TEST_RING --ei bells 5 -p com.example.marineclock`
+- `adb shell am broadcast -a com.example.marineclock.TEST_RING --ei bells 5 -p com.example.marineclock --include-stopped-packages`
   rings 5 bells immediately (debug build).
 - Notification volume slider changes loudness.
 - App notifications toggled off → no bell at the next half hour; on → rings.
