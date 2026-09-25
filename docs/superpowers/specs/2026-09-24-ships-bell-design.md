@@ -1,7 +1,56 @@
 # Ship's Bell — Design
 
 **Date:** 2026-09-24
-**Status:** Approved (pending written-spec review)
+**Status:** Approved. Revision 2 (below) supersedes the playback design.
+
+## Revision 2 (2026-09-24): Android plays each bell as a notification sound
+
+**Why:** Android 17 "background audio hardening" mutes audio that an app plays
+from the background unless it comes from a foreground service with while-in-use
+rights, and a service started from an alarm never has those. The only exemption
+is `USAGE_ALARM` audio, which would follow the Alarm volume instead of
+notification volume. This was confirmed on a Pixel 9 Pro (Android 17): logcat
+showed `AudioHardening background playback muted … usage: USAGE_NOTIFICATION`
+for every strike.
+
+**New design (supersedes Strike timing, Sound asset, Playback, Notification, and
+the `BellService` parts of Components, Manifest and Error handling):**
+
+- **Pre-rendered chimes.** `res/raw/bells_1.ogg` … `bells_8.ogg`: mono OGG Vorbis.
+  - Each file is the complete chime for that count: strike `i` at
+    `(i / 2) * 1.2 s + (i % 2) * 0.4 s`, and the 2.0 s strike sample as ring-out.
+    8 bells = 6.0 s.
+  - They are rendered by `tools/render-chimes.ps1` from `tools/audio/ships_bell.wav`,
+    which moves out of `res/raw`.
+- **Channels.** A group "Ship's bell" (`ships_bell_group`) holds 8 channels
+  `bells_<n>_v1`, named "1 bell" … "8 bells".
+  - Each channel: `IMPORTANCE_DEFAULT`, sound
+    `android.resource://<pkg>/raw/bells_<n>` with `USAGE_NOTIFICATION` /
+    `CONTENT_TYPE_SONIFICATION`, no vibration, no lights, no badge.
+  - A channel's sound can't be changed after creation, so the `_v1` suffix is
+    bumped whenever the audio changes.
+  - The old `ships_bell` channel is deleted.
+- **Ringing.** The alarm fires at **boundary + 2 s**. This mitigates other apps'
+  alerts timed exactly on :00/:30, because the newest notification sound stops the
+  one already playing.
+  - `EXTRA_SCHEDULED_AT` still carries the boundary; the bell count and the
+    stale-alarm check use it.
+  - After rescheduling and passing the gates, `BellNotifier` posts one notification
+    on the count's channel: title "Ship's bell", text "N bells", `ic_bell`,
+    `setTimeoutAfter(10 s)` (longer than the chime, because cancelling stops the
+    sound), `setLocalOnly(true)` (so a paired watch doesn't buzz), and a fixed
+    notification id.
+- **Gates** are unchanged, except that "channel enabled" now means that count's
+  channel is not `IMPORTANCE_NONE` **and** the group is not blocked.
+- **Removed:** `BellService`, SoundPool, the wake lock, audio focus, the
+  `FOREGROUND_SERVICE` and `WAKE_LOCK` permissions, and
+  `BellMath.strikeOffsetsMs` / `chimeDurationMs` (the timing now lives in the
+  render script).
+- **Known limits:**
+  - Another notification sounding during a chime cuts it off (the latest sound
+    wins).
+  - Notification cooldown can soften back-to-back test rings.
+  - Adaptive notifications might learn to quiet the bell; watch for this.
 
 ## Purpose
 
