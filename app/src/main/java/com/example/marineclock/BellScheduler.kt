@@ -11,14 +11,23 @@ import java.time.ZonedDateTime
 object BellScheduler {
     private const val TAG = "ShipsBell"
     private const val REQUEST_BELL = 0
+
+    /** Epoch millis of the boundary the alarm is for (not the trigger time). */
     const val EXTRA_SCHEDULED_AT = "com.example.marineclock.SCHEDULED_AT"
+
+    /**
+     * Ring this long after the boundary. The newest notification sound stops the one playing,
+     * so this keeps the chime clear of other apps' alerts timed exactly on :00 / :30.
+     */
+    const val POST_DELAY_MS = 2_000L
+
+    fun triggerAtMs(boundary: ZonedDateTime): Long = boundary.toInstant().toEpochMilli() + POST_DELAY_MS
 
     /** Arms (or replaces) the alarm for the first boundary strictly after [from]. */
     fun scheduleNext(context: Context, from: ZonedDateTime = ZonedDateTime.now()) {
         val next = BellMath.nextBoundary(from)
-        val triggerAtMs = next.toInstant().toEpochMilli()
         val intent = Intent(context, BellAlarmReceiver::class.java)
-            .putExtra(EXTRA_SCHEDULED_AT, triggerAtMs)
+            .putExtra(EXTRA_SCHEDULED_AT, next.toInstant().toEpochMilli())
         val pending = PendingIntent.getBroadcast(
             context,
             REQUEST_BELL,
@@ -27,7 +36,7 @@ object BellScheduler {
         )
         try {
             context.getSystemService(AlarmManager::class.java)
-                .setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pending)
+                .setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs(next), pending)
         } catch (e: SecurityException) {
             Log.w(TAG, "Cannot schedule exact alarm", e)
             return

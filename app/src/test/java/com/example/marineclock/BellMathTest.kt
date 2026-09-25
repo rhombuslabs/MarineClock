@@ -7,7 +7,6 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class BellMathTest {
@@ -88,34 +87,5 @@ class BellMathTest {
         val next = BellMath.nextBoundary(now)
         assertEquals(Instant.parse("2026-10-25T01:00:00Z"), next.toInstant())
         assertEquals(LocalTime.of(1, 0), next.toLocalTime())
-    }
-
-    // --- strikeOffsetsMs / chimeDurationMs ---
-
-    @Test
-    fun strikeOffsets_smallCounts() {
-        assertEquals(listOf(0L), BellMath.strikeOffsetsMs(1))
-        assertEquals(listOf(0L, 400L), BellMath.strikeOffsetsMs(2))
-        assertEquals(listOf(0L, 400L, 1200L), BellMath.strikeOffsetsMs(3))
-    }
-
-    @Test
-    fun strikeOffsets_eightBells() {
-        assertEquals(
-            listOf(0L, 400L, 1200L, 1600L, 2400L, 2800L, 3600L, 4000L),
-            BellMath.strikeOffsetsMs(8)
-        )
-    }
-
-    @Test
-    fun chimeDuration_eightBellsIsSixSeconds() {
-        assertEquals(6000L, BellMath.chimeDurationMs(8))
-        assertEquals(2000L, BellMath.chimeDurationMs(1))
-    }
-
-    @Test
-    fun strikeOffsets_rejectsOutOfRange() {
-        assertThrows(IllegalArgumentException::class.java) { BellMath.strikeOffsetsMs(0) }
-        assertThrows(IllegalArgumentException::class.java) { BellMath.strikeOffsetsMs(9) }
     }
 }

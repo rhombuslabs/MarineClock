@@ -21,11 +21,11 @@ object BellGates {
             nowMs - scheduledAtMs <= MAX_LATENESS_MS
 
     /** Reads the live system state and applies [shouldRing]. */
-    fun shouldRingNow(context: Context, scheduledAtMs: Long, nowMs: Long): Boolean {
+    fun shouldRingNow(context: Context, bells: Int, scheduledAtMs: Long, nowMs: Long): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java)
         return shouldRing(
             notificationsEnabled = nm.areNotificationsEnabled(),
-            channelEnabled = Channels.isEnabled(context),
+            channelEnabled = Channels.isEnabled(context, bells),
             dndActive = nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL,
             scheduledAtMs = scheduledAtMs,
             nowMs = nowMs,

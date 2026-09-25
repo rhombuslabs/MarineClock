@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Ship\'s Bell</string>
-    <string name="channel_name">Ship\'s bell</string>
-    <string name="channel_description">Rings the ship\'s bell every half hour. Turn off to silence the bell.</string>
+    <string name="channel_group_name">Ship\'s bell</string>
+    <string name="channel_description">The ship\'s bell chime for this number of bells. Turn off to silence it.</string>
     <string name="notification_title">Ship\'s bell</string>
     <plurals name="bells">
         <item quantity="one">%d bell</item>
