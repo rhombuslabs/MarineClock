@@ -13,8 +13,9 @@ notification volume. This was confirmed on a Pixel 9 Pro (Android 17): logcat
 showed `AudioHardening background playback muted … usage: USAGE_NOTIFICATION`
 for every strike.
 
-**New design (supersedes Strike timing, Sound asset, Playback, Notification, and
-the `BellService` parts of Components, Manifest and Error handling):**
+**New design (supersedes Strike timing, Sound asset, Playback, Notification,
+Testing (unit), and the `BellService` parts of Components, Manifest and Error
+handling):**
 
 - **Pre-rendered chimes.** `res/raw/bells_1.ogg` … `bells_8.ogg`: mono OGG Vorbis.
   - Each file is the complete chime for that count: strike `i` at
@@ -27,9 +28,13 @@ the `BellService` parts of Components, Manifest and Error handling):**
   - Each channel: `IMPORTANCE_DEFAULT`, sound
     `android.resource://<pkg>/raw/bells_<n>` with `USAGE_NOTIFICATION` /
     `CONTENT_TYPE_SONIFICATION`, no vibration, no lights, no badge.
-  - A channel's sound can't be changed after creation, so the `_v1` suffix is
-    bumped whenever the audio changes.
+  - The URI is resolved by name at play time, so re-rendered audio needs no
+    version bump; `_v1` is bumped only if the URI or channel defaults change,
+    and `ensure()` then deletes stale `bells_*` / `ships_bell` channels.
   - The old `ships_bell` channel is deleted.
+  - **Upgrade from Revision 1:** the legacy `ships_bell` channel is deleted and
+    the new channels start enabled, so a Revision 1 "off" setting is not
+    carried over (Revision 1 only ran on the developer's device).
 - **Ringing.** The alarm fires at **boundary + 2 s**. This mitigates other apps'
   alerts timed exactly on :00/:30, because the newest notification sound stops the
   one already playing.
@@ -46,6 +51,8 @@ the `BellService` parts of Components, Manifest and Error handling):**
   `FOREGROUND_SERVICE` and `WAKE_LOCK` permissions, and
   `BellMath.strikeOffsetsMs` / `chimeDurationMs` (the timing now lives in the
   render script).
+- **Unit tests:** BellMath (bell count, next boundary), BellGates, Channels
+  (ids, sound URI), BellScheduler (trigger = boundary + 2 s).
 - **Known limits:**
   - Another notification sounding during a chime cuts it off (the latest sound
     wins).
@@ -250,6 +257,7 @@ Notification volume at zero is not a gate. The bell simply plays silently.
 | Alarm armed at boundary + 2 s (`20:00:02.000`) | Pass |
 | Real 20:00 bell: posted 8 bells at 20:00:02.05 and re-armed for 20:30; no AudioHardening | Pass (see watch note) |
 | Real 20:30 bell: 1 bell at 20:30:02.04, system `MediaPlayer` (USAGE_NOTIFICATION) started | Pass |
+| Real 21:00 bell: 2 bells, heard by the user | Pass |
 | Test rings: 5 bells heard in full by the user | Pass |
 | DND on: gated ring skipped (`Bell skipped by gates`); DND off: rings | Pass |
 | "3 bells" channel off: the system drops that count; other counts still ring | Pass |
