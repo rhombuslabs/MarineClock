@@ -241,3 +241,24 @@ Notification volume at zero is not a gate. The bell simply plays silently.
 - DND on (manual and scheduled) → silent; off → the next bell is correct.
 - Reboot → rings at the next half hour with no relaunch.
 - Change the time zone → the next bell follows the new local time.
+
+## Verification (Revision 2): Pixel 9 Pro, Android 17 (API 37), 2026-09-24
+
+| Check | Result |
+|---|---|
+| 8 channels in the `ships_bell_group` group, importance 3, sound `android.resource://…/raw/bells_N`; legacy `ships_bell` deleted | Pass |
+| Alarm armed at boundary + 2 s (`20:00:02.000`) | Pass |
+| Real 20:00 bell: posted 8 bells at 20:00:02.05 and re-armed for 20:30; no AudioHardening | Pass (see watch note) |
+| Real 20:30 bell: 1 bell at 20:30:02.04, system `MediaPlayer` (USAGE_NOTIFICATION) started | Pass |
+| Test rings: 5 bells heard in full by the user | Pass |
+| DND on: gated ring skipped (`Bell skipped by gates`); DND off: rings | Pass |
+| "3 bells" channel off: the system drops that count; other counts still ring | Pass |
+
+**Watch note:** the Pixel Watch companion's "Mute notifications on phone" setting (the one for
+*phone* notifications) sets `HINT_HOST_DISABLE_EFFECTS`. That silences **all** notification sounds
+on the phone while the watch is connected, for every app, and no per-app exception exists. With
+that setting off, the bell rings normally with the watch connected. The per-app "send to watch"
+toggle does not affect it.
+
+Not yet observed: whether another app's notification cuts off a chime (expected: the latest sound
+wins), and how adaptive notifications behave over several days.
