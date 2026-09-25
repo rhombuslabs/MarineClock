@@ -14,6 +14,9 @@ New-Item -ItemType Directory -Force $work | Out-Null
 
 $pairGapS = 0.4
 $pairPeriodS = 1.2
+# Level trim so the chimes sit with the phone's own notification sounds. Pixel's built-in set has
+# a median loudest-50 ms level (sox "RMS Pk dB") of about -24 dB; untrimmed chimes measured -14.4 dB.
+$gainDb = -10
 
 function Invoke-Sox {
     & $Sox @args
@@ -21,7 +24,7 @@ function Invoke-Sox {
 }
 
 $mono = Join-Path $work "strike_mono.wav"
-Invoke-Sox $source $mono channels 1
+Invoke-Sox $source $mono channels 1 gain $gainDb.ToString($inv)
 
 foreach ($bells in 1..8) {
     $out = Join-Path $outDir "bells_$bells.ogg"
