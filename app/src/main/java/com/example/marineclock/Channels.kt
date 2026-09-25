@@ -10,10 +10,15 @@ import android.net.Uri
 /**
  * One notification channel per bell count, grouped under "Ship's bell". Each channel's sound is
  * the pre-rendered chime for that count, so Android itself plays the bell at notification volume.
- * Channel sounds can't change after creation: bump [SOUND_VERSION] whenever the audio changes.
+ * The channel stores the sound URI by resource name and resolves it at play time, so re-rendering
+ * `bells_N.ogg` in place takes effect without a bump; bump [SOUND_VERSION] only when the URI
+ * (resource name) or the channel's sound/attribute/importance defaults must change — `ensure()`
+ * then deletes the old-version channels (which also discards users' per-count settings).
  */
 object Channels {
     const val GROUP_ID = "ships_bell_group"
+
+    /** Bump only when the sound URI (resource name) or a channel's sound/attribute/importance defaults change. */
     private const val SOUND_VERSION = 1
     private const val LEGACY_CHANNEL_ID = "ships_bell"
 
@@ -31,7 +36,10 @@ object Channels {
     /** Creates the group and channels if missing. Safe to call repeatedly (user settings are preserved). */
     fun ensure(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
-        nm.deleteNotificationChannel(LEGACY_CHANNEL_ID)
+        val current = (1..8).map(::channelId).toSet()
+        nm.notificationChannels
+            .filter { it.id == LEGACY_CHANNEL_ID || (it.id.startsWith("bells_") && it.id !in current) }
+            .forEach { nm.deleteNotificationChannel(it.id) }
         nm.createNotificationChannelGroup(
             NotificationChannelGroup(GROUP_ID, context.getString(R.string.channel_group_name)),
         )

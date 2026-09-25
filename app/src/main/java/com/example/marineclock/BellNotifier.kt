@@ -21,7 +21,6 @@ object BellNotifier {
             .setContentText(context.resources.getQuantityString(R.plurals.bells, bells, bells))
             .setTimeoutAfter(TIMEOUT_MS)
             .setLocalOnly(true)
-            .setAutoCancel(true)
             .build()
         context.getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification)
         Log.i(TAG, "Ringing $bells bells")

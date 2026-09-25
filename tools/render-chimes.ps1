@@ -1,6 +1,6 @@
 # Renders app/src/main/res/raw/bells_1.ogg … bells_8.ogg from tools/audio/ships_bell.wav.
 # Timing: strike i at (i / 2) * 1.2 s + (i % 2) * 0.4 s; the 2.0 s strike sample is the ring-out.
-# Channel sounds are fixed once created: after changing the audio, bump SOUND_VERSION in Channels.kt.
+# Re-rendering in place takes effect on existing installs (channels store the URI by name). Bump SOUND_VERSION in Channels.kt only if the resource names change.
 param(
     [string]$Sox = "C:\Program Files (x86)\sox-14-4-2\sox.exe"
 )
